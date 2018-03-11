@@ -1,0 +1,12 @@
+package org.blockchainiot.java;
+
+import org.springframework.boot.SpringApplication;
+import org.springframework.boot.autoconfigure.SpringBootApplication;
+
+@SpringBootApplication
+public class SpringBootWeb3jFluxExampleApplication {
+
+	public static void main(String[] args) {
+		SpringApplication.run(SpringBootWeb3jFluxExampleApplication.class, args);
+	}
+}
