@@ -1,17 +1,23 @@
 package org.blockchainiot.java;
 
 
+import org.blockchainiot.java.dto.AccountUnlockRequest;
+import org.blockchainiot.java.dto.NewMachineCreatedResponse;
+import org.blockchainiot.java.dto.NewMachineRequest;
+import org.blockchainiot.java.service.MachineService;
 import org.springframework.beans.factory.annotation.Autowired;
+import org.springframework.http.MediaType;
 import org.springframework.http.ResponseEntity;
-import org.springframework.web.bind.annotation.GetMapping;
-import org.springframework.web.bind.annotation.PathVariable;
-import org.springframework.web.bind.annotation.RestController;
-import org.web3j.protocol.Web3j;
+import org.springframework.lang.NonNull;
+import org.springframework.web.bind.annotation.*;
+import org.web3j.protocol.admin.Admin;
+import org.web3j.protocol.admin.methods.response.PersonalUnlockAccount;
 import org.web3j.protocol.core.DefaultBlockParameterName;
 import org.web3j.protocol.core.methods.response.EthGetBalance;
 import org.web3j.protocol.core.methods.response.Web3ClientVersion;
 import reactor.core.publisher.Mono;
 
+import java.math.BigInteger;
 import java.util.List;
 
 
@@ -19,12 +25,15 @@ import java.util.List;
 public class AdminController {
 
 
-    private final Web3j web3j;
+    private final Admin admin;
+
+    private final MachineService machineService;
 
 
     @Autowired
-    public AdminController(Web3j web3j) {
-        this.web3j = web3j;
+    public AdminController(Admin admin, MachineService machineService) {
+        this.admin = admin;
+        this.machineService = machineService;
     }
 
 
@@ -32,18 +41,49 @@ public class AdminController {
     public Mono<Web3ClientVersion> getVersion() {
         return
                 Mono.fromCompletionStage
-                        (web3j
+                        (admin
                                 .web3ClientVersion()
                                 .sendAsync()
                         );
     }
 
+    @GetMapping(value = "/machine/{contractAddress}/rentalcount", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<BigInteger> createNewMachine(@RequestHeader("fromAddress") @NonNull String fromAddress,
+                                             @PathVariable("contractAddress") @NonNull String contractAddress) {
+        return machineService
+                .rentalCount(fromAddress, contractAddress);
+
+    }
+
+    @PostMapping(value = "/machine", consumes = MediaType.APPLICATION_JSON_VALUE)
+    public Mono<NewMachineCreatedResponse> createNewMachine(@RequestBody @NonNull NewMachineRequest request) {
+        return machineService
+                .addMachine(
+                        request.getOwnerAddress(),
+                        request.getModel(),
+                        request.getMake(),
+                        request.getVin()
+                )
+                .map(machine -> new NewMachineCreatedResponse(machine.getContractAddress()));
+    }
+
+
+    @PostMapping("/account")
+    public Mono<PersonalUnlockAccount> unlockAccount(@RequestBody @NonNull AccountUnlockRequest request) {
+        return Mono.fromCompletionStage
+                (
+                    admin
+                        .personalUnlockAccount(request.getAddress(), request.getPassPhrase())
+                        .sendAsync()
+                );
+    }
+
 
     @GetMapping("/{address}/balance")
-    public Mono<EthGetBalance> getBalance(@PathVariable("address") String address) {
+    public Mono<EthGetBalance> getBalance(@PathVariable("address") @NonNull String address) {
         return
                 Mono.fromCompletionStage
-                        (web3j
+                        (admin
                                 .ethGetBalance(address, DefaultBlockParameterName.LATEST)
                                 .sendAsync()
                 );
@@ -53,13 +93,11 @@ public class AdminController {
     public Mono<ResponseEntity<List<String>>> getAccounts() {
         return
                 Mono.fromCompletionStage(
-                        web3j
+                        admin
                                 .ethAccounts()
                                 .sendAsync()
                 )
                 .map(ethAccounts -> ResponseEntity.ok(ethAccounts.getAccounts()));
 
     }
-
-
 }

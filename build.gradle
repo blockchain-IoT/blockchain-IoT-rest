@@ -28,6 +28,7 @@ dependencies {
 	compile('org.springframework.boot:spring-boot-starter-webflux')
 	compile('org.springframework.boot:spring-boot-starter-actuator')
 	compile ('org.web3j:web3j-spring-boot-starter:1.6.0')
+	compile group: 'io.reactivex', name: 'rxjava-reactive-streams', version: '1.2.1'
 	testCompile('org.springframework.boot:spring-boot-starter-test')
 	testCompile('io.projectreactor:reactor-test')
 }
